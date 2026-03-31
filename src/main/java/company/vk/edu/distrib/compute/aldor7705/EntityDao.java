@@ -30,6 +30,6 @@ public class EntityDao implements Dao<byte[]> {
 
     @Override
     public void close() {
-        storage.clearFile();
+        storage.dropStorage();
     }
 }

@@ -3,83 +3,69 @@ package company.vk.edu.distrib.compute.aldor7705.storage;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-
-import static java.nio.charset.StandardCharsets.UTF_8;
+import java.nio.file.StandardOpenOption;
+import java.util.NoSuchElementException;
 
 public class DaoFileStorage {
 
-    private final Path filePath;
+    private final Path path;
 
-    public DaoFileStorage(Path filePath) {
-        this.filePath = filePath;
+    public DaoFileStorage(Path path) {
+        this.path = path;
+        try {
+            if (!Files.exists(path)) {
+                Files.createDirectories(path);
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException("Ошибка при создании папки", e);
+        }
     }
 
-    public void clearFile() {
+    public void dropStorage() {
         try {
-            Files.deleteIfExists(filePath);
-            Files.createFile(filePath);
+            Files.deleteIfExists(path);
         } catch (IOException e) {
-            throw new RuntimeException("Ошибка при очистке файла", e);
+            throw new UncheckedIOException("Ошибка при очистке хранилища", e);
         }
     }
 
     public void save(String key, byte[] value) {
-        Map<String, byte[]> map = readAllFromFile();
-        map.put(key, value);
-        writeAllToFile(map);
+        checkKey(key);
+        Path filePath = path.resolve(key);
+        try {
+            Files.write(filePath, value, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Ошибка при сохранении", e);
+        }
     }
 
     public byte[] readFromFile(String key) {
-        Map<String, byte[]> map = readAllFromFile();
-        byte[] value = map.get(key);
-        if (value == null) {
+        checkKey(key);
+        Path filePath = path.resolve(key);
+
+        if (!Files.exists(filePath)) {
             throw new NoSuchElementException("Элемент с ключом " + key + " не найден");
         }
-        return value;
-    }
 
-    public void deleteFromFile(String key) {
-        Map<String, byte[]> map = readAllFromFile();
-        map.remove(key);
-        writeAllToFile(map);
-    }
-
-    private void writeAllToFile(Map<String, byte[]> map) {
-        try (DataOutputStream dos = new DataOutputStream(Files.newOutputStream(filePath))) {
-            for (Map.Entry<String, byte[]> entry : map.entrySet()) {
-                byte[] value = entry.getValue();
-                byte[] keyBytes = entry.getKey().getBytes(UTF_8);
-                dos.writeInt(keyBytes.length);
-                dos.write(keyBytes);
-                dos.writeInt(value.length);
-                dos.write(value);
-            }
-        } catch (IOException e) {
-            throw new UncheckedIOException("Ошибка при записи в файл", e);
-        }
-    }
-
-    private Map<String, byte[]> readAllFromFile() {
-        Map<String, byte[]> map = new ConcurrentHashMap<>();
-        if (!Files.exists(filePath)) {
-            return map;
-        }
-
-        try (DataInputStream dis = new DataInputStream(Files.newInputStream(filePath))) {
-            while (dis.available() > 0) {
-                byte[] keyBytes = new byte[dis.readInt()];
-                dis.readFully(keyBytes);
-                String key = new String(keyBytes, UTF_8);
-                byte[] value = new byte[dis.readInt()];
-                dis.readFully(value);
-                map.put(key, value);
-            }
-            return map;
+        try {
+            return Files.readAllBytes(filePath);
         } catch (IOException e) {
             throw new UncheckedIOException("Ошибка при чтении файла", e);
         }
     }
 
+    public void deleteFromFile(String key) {
+        try {
+            Path filePath = path.resolve(key);
+            Files.deleteIfExists(filePath);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Ошибка при удалении записи", e);
+        }
+    }
+
+    private void checkKey(String key) {
+        if (key == null || key.isEmpty()) {
+            throw new IllegalArgumentException("Ключ должен быть не пустым");
+        }
+    }
 }

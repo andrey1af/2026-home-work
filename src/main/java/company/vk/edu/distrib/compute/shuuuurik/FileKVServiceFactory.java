@@ -1,0 +1,16 @@
+package company.vk.edu.distrib.compute.shuuuurik;
+
+import company.vk.edu.distrib.compute.KVService;
+import company.vk.edu.distrib.compute.KVServiceFactory;
+
+import java.io.IOException;
+import java.nio.file.Path;
+
+public class FileKVServiceFactory extends KVServiceFactory {
+    @Override
+    protected KVService doCreate(int port) throws IOException {
+        Path root = Path.of(".data");
+        FileDao dao = new FileDao(root);
+        return new KVServiceImpl(port, dao);
+    }
+}

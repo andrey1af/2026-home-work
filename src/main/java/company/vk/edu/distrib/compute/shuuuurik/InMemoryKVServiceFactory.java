@@ -5,7 +5,7 @@ import company.vk.edu.distrib.compute.KVServiceFactory;
 
 import java.io.IOException;
 
-public class KVServiceFactoryImpl extends KVServiceFactory {
+public class InMemoryKVServiceFactory extends KVServiceFactory {
     @Override
     protected KVService doCreate(int port) throws IOException {
         InMemoryDao dao = new InMemoryDao();

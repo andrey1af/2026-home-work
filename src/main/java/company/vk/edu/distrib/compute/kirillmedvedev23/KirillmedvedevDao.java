@@ -8,6 +8,8 @@ import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class KirillmedvedevDao implements Dao<byte[]> {
+    private static final int MAX_VALUE_SIZE = 1024 * 1024;
+    
     private final Map<String, byte[]> storage = new ConcurrentHashMap<>();
 
     @Override
@@ -23,6 +25,12 @@ public class KirillmedvedevDao implements Dao<byte[]> {
     @Override
     public void upsert(String key, byte[] value) throws IllegalArgumentException, IOException {
         requireValidKey(key);
+        if (value == null) {
+            throw new IllegalArgumentException("Value cannot be null");
+        }
+        if (value.length > MAX_VALUE_SIZE) {
+            throw new IllegalArgumentException("Value too large: max " + MAX_VALUE_SIZE + " bytes");
+        }
         storage.put(key, value);
     }
 

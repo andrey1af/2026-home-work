@@ -4,7 +4,6 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 import company.vk.edu.distrib.compute.b10nicle.B10nicleKVServiceFactory;
-import company.vk.edu.distrib.compute.andrey1af.service.Andrey1afKVServiceFactory;
 import company.vk.edu.distrib.compute.nihuaway00.NihuawayKVServiceFactory;
 import company.vk.edu.distrib.compute.mandesero.KVServiceFactoryImpl;
 import company.vk.edu.distrib.compute.vitos23.Vitos23KVServiceFactory;
@@ -20,7 +19,7 @@ public class KVServiceFactoryArgumentsProvider implements ArgumentsProvider {
         Vitos23KVServiceFactory.class,
         KVServiceFactoryImpl.class,
         NihuawayKVServiceFactory.class,
-        Andrey1afKVServiceFactory.class
+        B10nicleKVServiceFactory.class
     );
 
     @Override

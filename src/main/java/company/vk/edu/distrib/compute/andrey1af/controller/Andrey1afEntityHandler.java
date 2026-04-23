@@ -9,9 +9,12 @@ import company.vk.edu.distrib.compute.nesterukia.utils.HttpUtils;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 
@@ -35,11 +38,18 @@ public class Andrey1afEntityHandler implements HttpHandler {
     private final Dao<byte[]> dao;
     private final String selfEndpoint;
     private final HashRouter shardingStrategy;
+    private final String internalRequestToken;
 
     public Andrey1afEntityHandler(Dao<byte[]> dao, String selfEndpoint, HashRouter shardingStrategy) {
+        this(dao, selfEndpoint, shardingStrategy, null);
+    }
+
+    public Andrey1afEntityHandler(
+            Dao<byte[]> dao, String selfEndpoint, HashRouter shardingStrategy, String internalRequestToken) {
         this.dao = Objects.requireNonNull(dao);
         this.selfEndpoint = selfEndpoint;
         this.shardingStrategy = shardingStrategy;
+        this.internalRequestToken = internalRequestToken;
     }
 
     @Override
@@ -77,7 +87,8 @@ public class Andrey1afEntityHandler implements HttpHandler {
 
         for (String param : query.split(QUERY_PARAMETER_SEPARATOR)) {
             if (param.startsWith(QUERY_PARAMETER_ID_PREFIX)) {
-                return param.substring(QUERY_PARAMETER_ID_PREFIX_LENGTH);
+                String encodedId = param.substring(QUERY_PARAMETER_ID_PREFIX_LENGTH);
+                return URLDecoder.decode(encodedId, StandardCharsets.UTF_8);
             }
         }
         return null;
@@ -113,8 +124,13 @@ public class Andrey1afEntityHandler implements HttpHandler {
         if (selfEndpoint == null || shardingStrategy == null) {
             return false;
         }
-        return !exchange.getRequestHeaders().containsKey(INTERNAL_HEADER)
+        return !isInternalRequest(exchange)
                 && !shardingStrategy.isResponsible(id, selfEndpoint);
+    }
+
+    private boolean isInternalRequest(HttpExchange exchange) {
+        return internalRequestToken != null
+                && internalRequestToken.equals(exchange.getRequestHeaders().getFirst(INTERNAL_HEADER));
     }
 
     private void proxyRequest(HttpExchange exchange, String id) throws IOException, InterruptedException {
@@ -133,20 +149,18 @@ public class Andrey1afEntityHandler implements HttpHandler {
             return;
         }
 
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(targetEndpoint + "/v0/entity?id=" + id))
-                .method(exchange.getRequestMethod(), bodyPublisher)
-                .header(INTERNAL_HEADER, "true")
-                .build();
+        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+                .uri(entityUri(targetEndpoint, id))
+                .method(exchange.getRequestMethod(), bodyPublisher);
+        if (internalRequestToken != null) {
+            requestBuilder.header(INTERNAL_HEADER, internalRequestToken);
+        }
+        HttpRequest request = requestBuilder.build();
 
         HttpResponse<byte[]> response;
         try {
             response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofByteArray());
         } catch (IOException e) {
-            if (REQUEST_METHOD_GET.equals(exchange.getRequestMethod())) {
-                sendEmpty(exchange, HTTP_NOT_FOUND);
-                return;
-            }
             sendEmpty(exchange, HTTP_UNAVAILABLE);
             return;
         }
@@ -162,5 +176,9 @@ public class Andrey1afEntityHandler implements HttpHandler {
             os.write(body);
         }
         exchange.close();
+    }
+
+    private static URI entityUri(String endpoint, String id) {
+        return URI.create(endpoint + "/v0/entity?id=" + URLEncoder.encode(id, StandardCharsets.UTF_8));
     }
 }

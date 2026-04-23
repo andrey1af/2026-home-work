@@ -17,6 +17,7 @@ public class Andrey1afKVServiceFactory extends KVServiceFactory {
     }
 
     public Andrey1afKVServiceFactory(Path dataRoot) {
+        super();
         this.dataRoot = Objects.requireNonNull(dataRoot, "dataRoot cannot be null");
     }
 
@@ -32,5 +33,16 @@ public class Andrey1afKVServiceFactory extends KVServiceFactory {
     public Andrey1afKVService createClusterNode(
             int port, String selfEndpoint, HashRouter hashRouter) throws IOException {
         return new Andrey1afKVService(port, new InFileDao(storagePath(port)), selfEndpoint, hashRouter);
+    }
+
+    public Andrey1afKVService createClusterNode(
+            int port, String selfEndpoint, HashRouter hashRouter, String internalRequestToken) throws IOException {
+        return new Andrey1afKVService(
+                port,
+                new InFileDao(storagePath(port)),
+                selfEndpoint,
+                hashRouter,
+                internalRequestToken
+        );
     }
 }

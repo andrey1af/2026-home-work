@@ -23,16 +23,27 @@ public class Andrey1afKVService implements KVService {
     private final Dao<byte[]> dao;
     private final String selfEndpoint;
     private final HashRouter hashRouter;
+    private final String internalRequestToken;
     private final AtomicBoolean stopped = new AtomicBoolean(false);
 
     Andrey1afKVService(int port, Dao<byte[]> dao) throws IOException {
-        this(port, dao, null, null);
+        this(port, dao, null, null, null);
     }
 
     Andrey1afKVService(int port, Dao<byte[]> dao, String selfEndpoint, HashRouter hashRouter) throws IOException {
+        this(port, dao, selfEndpoint, hashRouter, null);
+    }
+
+    Andrey1afKVService(
+            int port,
+            Dao<byte[]> dao,
+            String selfEndpoint,
+            HashRouter hashRouter,
+            String internalRequestToken) throws IOException {
         this.dao = Objects.requireNonNull(dao, "dao cannot be null");
         this.selfEndpoint = selfEndpoint;
         this.hashRouter = hashRouter;
+        this.internalRequestToken = internalRequestToken;
 
         this.server = HttpServer.create(new InetSocketAddress(port), 0);
         this.server.setExecutor(Executors.newFixedThreadPool(
@@ -44,7 +55,10 @@ public class Andrey1afKVService implements KVService {
 
     private void initServer() {
         server.createContext("/v0/status", new Andrey1afStatusHandler());
-        server.createContext("/v0/entity", new Andrey1afEntityHandler(dao, selfEndpoint, hashRouter));
+        server.createContext(
+                "/v0/entity",
+                new Andrey1afEntityHandler(dao, selfEndpoint, hashRouter, internalRequestToken)
+        );
     }
 
     @Override

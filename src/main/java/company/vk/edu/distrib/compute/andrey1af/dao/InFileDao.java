@@ -15,6 +15,7 @@ import java.util.Base64;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class InFileDao implements Dao<byte[]> {
 
@@ -22,7 +23,7 @@ public class InFileDao implements Dao<byte[]> {
 
     private final Path directory;
     private final Map<String, byte[]> cache;
-    private volatile boolean closed;
+    private final AtomicBoolean closed = new AtomicBoolean(false);
 
     public InFileDao(Path directory) {
         this.directory = directory;
@@ -51,7 +52,9 @@ public class InFileDao implements Dao<byte[]> {
             cache.put(key, value);
             return Arrays.copyOf(value, value.length);
         } catch (NoSuchFileException e) {
-            throw new NoSuchElementException("Key not found: " + key);
+            NoSuchElementException exception = new NoSuchElementException("Key not found: " + key);
+            exception.initCause(e);
+            throw exception;
         }
     }
 
@@ -88,7 +91,7 @@ public class InFileDao implements Dao<byte[]> {
 
     @Override
     public void close() {
-        closed = true;
+        closed.set(true);
         cache.clear();
     }
 
@@ -102,7 +105,7 @@ public class InFileDao implements Dao<byte[]> {
     }
 
     private void checkNotClosed() {
-        if (closed) {
+        if (closed.get()) {
             throw new IllegalStateException("DAO is closed");
         }
     }

@@ -3,6 +3,7 @@ package company.vk.edu.distrib.compute.andrey1af.service;
 import company.vk.edu.distrib.compute.KVService;
 import company.vk.edu.distrib.compute.KVServiceFactory;
 import company.vk.edu.distrib.compute.andrey1af.dao.InFileDao;
+import company.vk.edu.distrib.compute.andrey1af.replication.Andrey1afReplicatedServiceImpl;
 import company.vk.edu.distrib.compute.andrey1af.sharding.HashRouter;
 
 import java.io.IOException;
@@ -27,7 +28,7 @@ public class Andrey1afKVServiceFactory extends KVServiceFactory {
 
     @Override
     protected KVService doCreate(int port) throws IOException {
-        return new Andrey1afKVService(port, new InFileDao(storagePath(port)));
+        return new Andrey1afReplicatedServiceImpl(port);
     }
 
     public Andrey1afKVService createClusterNode(

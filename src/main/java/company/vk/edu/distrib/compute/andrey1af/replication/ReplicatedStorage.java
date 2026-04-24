@@ -113,7 +113,7 @@ final class ReplicatedStorage {
         @Override
         public byte[] value() {
             if (value == null) {
-                return null;
+                return new byte[0];
             }
             return Arrays.copyOf(value, value.length);
         }
